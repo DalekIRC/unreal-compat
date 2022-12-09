@@ -1,0 +1,2 @@
+# unreal-compat
+UnrealIRCd compatibility
