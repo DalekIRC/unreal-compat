@@ -8,13 +8,13 @@
 /*** <<<MODULE MANAGER START>>>
 module
 {
-		documentation "https://github.com/DalekIRC/unreal-compat/blob/main/README.md";
-		troubleshooting "In case of problems, email valerie@valware.co.uk";
+		documentation "https://github.com/ValwareIRC/client-unrealircd-mods/blob/main/nicklock/README.md";
+	troubleshooting "In case of problems, documentation or e-mail me at v.a.pond@outlook.com";
 		min-unrealircd-version "6.*";
 		max-unrealircd-version "6.*";
 		post-install-text {
 				"The module is installed. Now all you need to do is add a loadmodule line:";
-				"loadmodule \"third/dalek\";";
+				"loadmodule \"third/nicklock\";";
 				"And /REHASH the IRCd.";
 				"The module does not need any other configuration.";
 		}
@@ -36,6 +36,7 @@ ModuleHeader MOD_HEADER = {
 };
 
 
+int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **list);
 CMD_OVERRIDE_FUNC(privmsg_ovr);
 CMD_FUNC(cmd_privattempt);
 CMD_FUNC(cmd_sprivmsg);
@@ -46,6 +47,7 @@ MOD_INIT() {
 	CommandAdd(modinfo->handle, MSG_PRIVATTEMPT, cmd_privattempt, 2, CMD_SERVER|CMD_USER);
 	CommandAdd(modinfo->handle, MSG_SPRIVMSG, cmd_sprivmsg, 3, CMD_SERVER);
 	CommandAdd(modinfo->handle, MSG_MAIL, cmd_mail, 2, CMD_SERVER|CMD_USER);
+	HookAdd(modinfo->handle, HOOKTYPE_WHOIS, 0, loggedinfrom_whois);
 	return MOD_SUCCESS;
 }
 /** Called upon module load */
@@ -189,3 +191,23 @@ CMD_FUNC(cmd_mail)
 	return;
 }
 
+int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **list)
+{
+	Client *client;
+	char buf[512];
+	
+	if (!IsOper(requester) && acptr != requester) // only show to the self
+		return 0;
+	
+	int i = 1;
+	list_for_each_entry(client, &client_list, client_node)
+	{
+		if (!strcasecmp(client->user->account,acptr->user->account))
+		{
+			add_nvplist_numeric_fmt(list, 999900 + i, "loggedin", acptr, 320, "%s :is logged in from %s!%s@%s (%i)%s", acptr->name, client->name, client->user->username, client->ip, i, (client == requester) ? " (You)" : "");
+			++i;
+		}
+	}
+	
+	return 0;
+}
