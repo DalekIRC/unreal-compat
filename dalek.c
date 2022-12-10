@@ -208,6 +208,10 @@ int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **lis
 			++i;
 		}
 	}
+	if (acptr->user->account)
+	{
+		add_nvplist_numeric_fmt(list, 999900, "loggedin", acptr, 320, "%s :is logged in from \x02%i place%s\x02:", acptr->name, i - 1, (i-1 == 1) ? "" : "s");
+	}
 	
 	return 0;
 }
