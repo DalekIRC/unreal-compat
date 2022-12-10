@@ -8,13 +8,13 @@
 /*** <<<MODULE MANAGER START>>>
 module
 {
-		documentation "https://github.com/ValwareIRC/client-unrealircd-mods/blob/main/nicklock/README.md";
+		documentation "https://github.com/DalekIRC/unreal-compat/blob/main/README.md";
 		troubleshooting "In case of problems, documentation or e-mail me at v.a.pond@outlook.com";
 		min-unrealircd-version "6.*";
 		max-unrealircd-version "6.*";
 		post-install-text {
 				"The module is installed. Now all you need to do is add a loadmodule line:";
-				"loadmodule \"third/nicklock\";";
+				"loadmodule \"third/dalek\";";
 				"And /REHASH the IRCd.";
 				"The module does not need any other configuration.";
 		}
