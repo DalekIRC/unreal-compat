@@ -168,8 +168,10 @@ static char *certfp_help[] = {
 CMD_OVERRIDE_FUNC(helpop_ovr)
 {
 	if (!parv[1])
+	{
 		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
-	
+		return;
+	}
 	if (!strcasecmp(parv[1], "suspend"))
 		send_help_to_client(client, suspend_help);
 	
