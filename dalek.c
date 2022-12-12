@@ -184,7 +184,9 @@ CMD_OVERRIDE_FUNC(helpop_ovr)
 
 	else if (!strcasecmp(parv[1], "cregister"))
 		send_help_to_client(client, cregister_help);
-
+	
+	else if (!strcasecmp(parv[1],"certfp"))
+		send_help_to_client(client, certfp_help);
 	else
 		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
 }
@@ -334,7 +336,7 @@ CMD_FUNC(cmd_mail)
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_MAIL);
 		return;
 	}
 	if (!services)
@@ -405,7 +407,7 @@ CMD_FUNC(cmd_ajoin)
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_AJOIN);
 		return;
 	}
 	if (!services)
@@ -426,7 +428,7 @@ CMD_FUNC(cmd_ajoin)
 
 	if (!strcasecmp(parv[1],"list"))
 	{
-		sendto_one(services, recv_mtags, "%s AJOIN LIST", client->id);
+		sendto_one(services, recv_mtags, ":%s AJOIN LIST :", client->id);
 		return;
 	}
 	else if (!parv[2])
@@ -440,7 +442,7 @@ CMD_FUNC(cmd_ajoin)
 		sendnumeric(client, ERR_NOSUCHNICK, parv[2]);
 		return;
 	}
-	sendto_one(services, recv_mtags, ":%s AJOIN %s %s", client->id, parv[1], parv[2]);
+	sendto_one(services, recv_mtags, ":%s AJOIN %s :%s", client->id, parv[1], parv[2]);
 
 }
 
@@ -457,7 +459,7 @@ CMD_FUNC(cmd_suspend)
 	}
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_SUSPEND);
 		return;
 	}
 	if (!services)
@@ -493,7 +495,7 @@ CMD_FUNC(cmd_unsuspend)
 	}
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_UNSUSPEND);
 		return;
 	}
 	if (!services)
@@ -518,9 +520,10 @@ CMD_FUNC(cmd_cregister)
 {
 	Client *services = find_server(iConf.services_name, NULL);
 	Channel *channel;
+	
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_CREGISTER);
 		return;
 	}
 	if (!services)
@@ -570,7 +573,7 @@ CMD_FUNC(cmd_certfp)
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!IsLoggedIn(client))
 	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_CERTFP);
 		return;
 	}
 	if (!services)
@@ -602,10 +605,8 @@ CMD_FUNC(cmd_certfp)
 		return;
 	}
 	else if (!strcasecmp(parv[1],"list"))
-	{
 		sendto_one(services, recv_mtags, ":%s CERTFP LIST :", client->id);
-		return;
-	}
+	
 	else if (!strcasecmp(parv[1],"del"))
 	{
 		if (!parv[2])
@@ -614,7 +615,6 @@ CMD_FUNC(cmd_certfp)
 			return;
 		}
 		sendto_one(services, recv_mtags, ":%s CERTFP DEL :%s", client->id, parv[2]);
-		return;
 	}
 	else
 		send_help_to_client(client, certfp_help);
