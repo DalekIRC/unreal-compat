@@ -26,6 +26,11 @@ module
 #define MSG_PRIVATTEMPT "PRIVATTEMPT"
 #define MSG_SPRIVMSG "SPRIVMSG"
 #define MSG_MAIL "MAIL"
+#define MSG_AJOIN "AJOIN"
+#define MSG_SUSPEND "SUSPEND"
+#define MSG_UNSUSPEND "UNSUSPEND"
+#define MSG_CREGISTER "CREGISTER"
+#define MSG_CERTFP "CERTFP"
 
 ModuleHeader MOD_HEADER = {
 	"third/dalek",
@@ -37,16 +42,174 @@ ModuleHeader MOD_HEADER = {
 
 
 int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **list);
+static void send_help_to_client(Client *client, char **p)
+{
+	if(IsServer(client))
+		return;
+
+	for(; *p != NULL; p++)
+		sendto_one(client, NULL, ":%s %03d %s :%s", me.name, RPL_TEXT, client->name, *p);
+
+	add_fake_lag(client, 5000);
+}
+
+
+/**
+ * Help files
+*/
+static char *mail_help[] = {
+	"***** Mail *****",
+	" ",
+	"Description:",
+	"This command lets you send messages to users who are not currently online.",
+	"The destination must be a registered account name.",
+	" ",
+	"Syntax:",
+	"    /MAIL <account> <message>",
+	" ",
+	"Examples:",
+	"    /MAIL Valware Hey! Drop me a message when you get this? Thanks!",
+	" ",
+	NULL
+};
+static char *ajoin_help[] = {
+	"***** AJoin *****",
+	" ",
+	"Description:",
+	"This command lets you view and change your auto-join list.",
+	"Whichever channels you add to your auto-join list, you will be joined to when",
+	"you connect with your account.",
+	" ",
+	"You must be logged in to use this command.",
+	" ",
+	"Syntax:",
+	"    /AJOIN add|del|list [<channel1,channel2>]",
+	" ",
+	"Examples:",
+	"    /AJOIN list",
+	"    /AJOIN add #chat,#radio",
+	"    /AJOIN del #usa",
+	" ",
+	NULL
+};
+static char *suspend_help[] = {
+	"***** Suspend *****",
+	" ",
+	"Description:",
+	"This command lets privileged opers suspend user accounts.",
+	" ",
+	"You must be logged in to use this command.",
+	" ",
+	"Syntax:",
+	"    /SUSPEND <account> [<reason>]",
+	" ",
+	"Examples:",
+	"    /SUSPEND Lamer32",
+	"    /SUSPEND WarezBoi Wares is not allowed",
+	" ",
+	NULL
+};
+static char *unsuspend_help[] = {
+	"***** Unsuspend *****",
+	" ",
+	"Description:",
+	"This command lets privileged opers unsuspend user accounts.",
+	" ",
+	"You must be logged in to use this command.",
+	" ",
+	"Syntax:",
+	"    /UNSUSPEND <account>",
+	" ",
+	"Examples:",
+	"    /UNSUSPEND Lamer32",
+	" ",
+	NULL
+};
+static char *cregister_help[] = {
+	"***** CRegister *****",
+	" ",
+	"Description:",
+	"Allows you to register a channel.",
+	" ",
+	"You must be logged in and have at least ops on the specified",
+	"channel to use this command.",
+	" ",
+	"Syntax:",
+	"    /CREGISTER <channel>",
+	" ",
+	"Examples:",
+	"    /CREGISTER #Chat",
+	" ",
+	NULL
+};
+static char *certfp_help[] = {
+	"***** CertFP *****",
+	" ",
+	"Description:",
+	"Allows you to view and manage your certificate fingerprints list.",
+	" ",
+	"You must be logged in and be wearing a certificate fingerprint to",
+	"use this command.",
+	" ",
+	"Syntax:",
+	"    /CERTFP add|del|list [<certfp>]",
+	" ",
+	"Examples:",
+	"    /CERTFP add",
+	"    /CERTFP del 8e8fb90324550d3a379c75c50e9e3cd52d1d21723532daa4b85b61dc84f48d7d",
+	"    /CERTFP list",
+	" ",
+	NULL
+};
+
+/** Command Override for HELP/HELPOP
+ * Shows our commands help in the /HELP and /HELPOP display
+*/
+CMD_OVERRIDE_FUNC(helpop_ovr)
+{
+	if (!parv[1])
+		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
+	
+	if (!strcasecmp(parv[1], "suspend"))
+		send_help_to_client(client, suspend_help);
+	
+	else if (!strcasecmp(parv[1], "unsuspend"))
+		send_help_to_client(client, unsuspend_help);
+
+	else if (!strcasecmp(parv[1],"ajoin"))
+		send_help_to_client(client, ajoin_help);
+
+	else if (!strcasecmp(parv[1],"mail"))
+		send_help_to_client(client, mail_help);
+
+	else if (!strcasecmp(parv[1], "cregister"))
+		send_help_to_client(client, cregister_help);
+
+	else
+		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
+}
+
+/* Command Definitions */
 CMD_OVERRIDE_FUNC(privmsg_ovr);
 CMD_FUNC(cmd_privattempt);
 CMD_FUNC(cmd_sprivmsg);
 CMD_FUNC(cmd_mail);
+CMD_FUNC(cmd_ajoin);
+CMD_FUNC(cmd_suspend);
+CMD_FUNC(cmd_unsuspend);
+CMD_FUNC(cmd_cregister);
+CMD_FUNC(cmd_certfp);
 
 MOD_INIT() {
 	MARK_AS_GLOBAL_MODULE(modinfo);
 	CommandAdd(modinfo->handle, MSG_PRIVATTEMPT, cmd_privattempt, 2, CMD_SERVER|CMD_USER);
 	CommandAdd(modinfo->handle, MSG_SPRIVMSG, cmd_sprivmsg, 3, CMD_SERVER);
 	CommandAdd(modinfo->handle, MSG_MAIL, cmd_mail, 2, CMD_SERVER|CMD_USER);
+	CommandAdd(modinfo->handle, MSG_AJOIN, cmd_ajoin, 2, CMD_USER);
+	CommandAdd(modinfo->handle, MSG_SUSPEND, cmd_suspend, 2, CMD_OPER);
+	CommandAdd(modinfo->handle, MSG_UNSUSPEND, cmd_unsuspend, 1, CMD_OPER);
+	CommandAdd(modinfo->handle, MSG_CREGISTER, cmd_cregister, 1, CMD_USER);
+	CommandAdd(modinfo->handle, MSG_CERTFP, cmd_certfp, 2, CMD_USER);
 	HookAdd(modinfo->handle, HOOKTYPE_WHOIS, 0, loggedinfrom_whois);
 	return MOD_SUCCESS;
 }
@@ -54,6 +217,8 @@ MOD_INIT() {
 MOD_LOAD()
 {
 	CommandOverrideAdd(modinfo->handle, "PRIVMSG", 0, privmsg_ovr);
+	CommandOverrideAdd(modinfo->handle, "HELPOP", 0, helpop_ovr);
+	CommandOverrideAdd(modinfo->handle, "HELP", 0, helpop_ovr);
 	return MOD_SUCCESS;
 }
 
@@ -81,7 +246,7 @@ CMD_OVERRIDE_FUNC(privmsg_ovr)
 {
 	Client *target, *services;
 
-	if (!(services = find_server(iConf.services_name, NULL))) // no potential services
+	if (!IsLoggedIn(client) || !(services = find_server(iConf.services_name, NULL))) // no potential services
 	{
 		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
 		return;
@@ -100,17 +265,23 @@ CMD_OVERRIDE_FUNC(privmsg_ovr)
 	if ((target = find_user(parv[1], NULL))) // client is online, don't touch it, let original function deal with it
 	{
 		CallCommandOverride(ovr, client, recv_mtags, parc, parv);
-	        return;
+	    return;
 	}
 	/* So the user is not online. This is where we come in.
 	 * At this point we've already confirmed our services is online and that the user the client
 	 * is trying to message is offline. So, ask services to let them know about it.
 	*/
-	sendto_server(NULL, 0, 0, recv_mtags, ":%s %s %s %s", me.name, MSG_PRIVATTEMPT, client->id, parv[1]);
+	sendto_one(services, recv_mtags, ":%s %s %s %s", me.name, MSG_PRIVATTEMPT, client->id, parv[1]);
 	
+	CallCommandOverride(ovr, client, recv_mtags, parc, parv); // allow it to process normally and tell the user it wasn't online =]
 	return;
 }
 
+/**
+ * S2S command to notify services about a PRIVMSG attempt.
+ * @param parv[1] From
+ * @param parv[2] To
+*/
 CMD_FUNC(cmd_privattempt)
 {
 	/* We checked before, but make sure services is still online as it gets passed down the line... */
@@ -126,6 +297,8 @@ CMD_FUNC(cmd_privattempt)
 }
 
 /**
+ * Allows services to send a backlog of MAIL messages as if they were
+ * natively sent by the person via PRIVMSG. Takes into account sent @time and other mtags.
  * parv[1] = client
  * parv[2] = target
  * parv[3] = :message
@@ -151,19 +324,22 @@ CMD_FUNC(cmd_sprivmsg)
 	sendto_one(target, recv_mtags, ":%s PRIVMSG %s :%s", parv[1], target->name, parv[3]);
 }
 
+/**
+ * Lets users send messages to users who are offline, for when they are online.
+ * @param parv[1] Target account or "-list"
+ * @param parv[2] Full message
+*/
 CMD_FUNC(cmd_mail)
 {
 	Client *services = find_server(iConf.services_name, NULL);
-	if (!services)
+	if (!IsLoggedIn(client))
 	{
-		unreal_log(ULOG_INFO, "mail", "CMD_MAIL", client, "MAIL: Services not online.");
-		sendto_one(client, NULL, "FAIL MAIL SERVICES_OFFLINE :No mail server online.");
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
 		return;
 	}
-
-	if (!client->user->account)
+	if (!services)
 	{
-		sendto_one(client, NULL, "FAIL MAIL NOT_LOGGED_IN :Must be logged in to perform that command.");
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_MAIL);
 		return;
 	}
 
@@ -174,8 +350,7 @@ CMD_FUNC(cmd_mail)
 	}
 	if (parc < 3)
 	{
-		sendto_one(client, NULL, "FAIL MAIL NEED_MORE_PARAMS :Not enough parameters.");
-		sendto_one(client, NULL, "NOTE MAIL SYNTAX :Syntax: /MAIL <accountname> <message>");
+		send_help_to_client(client, mail_help);
 		return;
 	}
 	Client *target = find_user(parv[1], NULL);
@@ -191,6 +366,11 @@ CMD_FUNC(cmd_mail)
 	return;
 }
 
+
+/**
+ * In this whois hook, we let the user see their own "places they are logged in from".
+ * Opers can also see this information.
+*/
 int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **list)
 {
 	Client *client;
@@ -204,7 +384,7 @@ int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **lis
 	{
 		if (!strcasecmp(client->user->account,acptr->user->account))
 		{
-			add_nvplist_numeric_fmt(list, 999900 + i, "loggedin", acptr, 320, "%s :is logged in from %s!%s@%s (%i)%s", acptr->name, client->name, client->user->username, client->ip, i, (client == requester) ? " (You)" : "");
+			add_nvplist_numeric_fmt(list, 999900 + i, "loggedin", acptr, 320, "%s :is logged in from %s!%s@%s (%i)%s", acptr->name, client->name, client->user->username, client->user->realhost, i, (client == requester) ? " (You)" : "");
 			++i;
 		}
 	}
@@ -215,3 +395,228 @@ int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **lis
 	
 	return 0;
 }
+
+/** AJOIN command
+ * View and change your auto-join list
+ */
+CMD_FUNC(cmd_ajoin)
+{
+	Channel *channel;
+	Client *services = find_server(iConf.services_name, NULL);
+	if (!IsLoggedIn(client))
+	{
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		return;
+	}
+	if (!services)
+	{
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_AJOIN);
+		return;
+	}
+	if (!parv[1])
+	{
+		send_help_to_client(client, ajoin_help);
+		return;
+	}
+	if (strcasecmp(parv[1],"add") && strcasecmp(parv[1],"del") && strcasecmp(parv[1],"list"))
+	{
+		send_help_to_client(client, ajoin_help);
+		return;
+	}
+
+	if (!strcasecmp(parv[1],"list"))
+	{
+		sendto_one(services, recv_mtags, "%s AJOIN LIST", client->id);
+		return;
+	}
+	else if (!parv[2])
+	{
+		send_help_to_client(client, ajoin_help);
+		return;
+	}
+	
+	if (!(channel = find_channel(parv[2])))
+	{
+		sendnumeric(client, ERR_NOSUCHNICK, parv[2]);
+		return;
+	}
+	sendto_one(services, recv_mtags, ":%s AJOIN %s %s", client->id, parv[1], parv[2]);
+
+}
+
+/** Suspend command 
+ * Suspend account by name
+*/
+CMD_FUNC(cmd_suspend)
+{
+	Client *services = find_server(iConf.services_name, NULL);
+	if (!ValidatePermissionsForPath("services:can_suspend", client, NULL, NULL, NULL)) // validate with operclasses instead of services-side ;D
+	{
+		sendnumeric(client, ERR_NOPRIVILEGES);
+		return;
+	}
+	if (!IsLoggedIn(client))
+	{
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		return;
+	}
+	if (!services)
+	{
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
+		return;
+	}
+	if (!parv[1])
+	{
+		send_help_to_client(client, suspend_help);
+		return;
+	}
+	if (!parv[2])
+	{
+		parv[2] = "No reason";
+		parv[3] = NULL;
+	}
+	
+	sendto_one(services, recv_mtags, ":%s SUSPEND %s :%s", client->id, parv[1], parv[2]);
+
+}
+
+/** Unsuspend command
+ * Unsuspend an account by name
+ */
+CMD_FUNC(cmd_unsuspend)
+{
+	Client *services = find_server(iConf.services_name, NULL);
+	if (!ValidatePermissionsForPath("services:can_unsuspend", client, NULL, NULL, NULL)) // validate with operclasses instead of services-side ;D
+	{
+		sendnumeric(client, ERR_NOPRIVILEGES);
+		return;
+	}
+	if (!IsLoggedIn(client))
+	{
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		return;
+	}
+	if (!services)
+	{
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_UNSUSPEND);
+		return;
+	}
+	if (!parv[1])
+	{
+		send_help_to_client(client, unsuspend_help);
+		return;
+	}
+	
+	sendto_one(services, recv_mtags, ":%s UNSUSPEND %s", client->id, parv[1]);
+
+}
+
+/** CRegister command
+ * Register channels
+ */
+CMD_FUNC(cmd_cregister)
+{
+	Client *services = find_server(iConf.services_name, NULL);
+	Channel *channel;
+	if (!IsLoggedIn(client))
+	{
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		return;
+	}
+	if (!services)
+	{
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_CREGISTER);
+		return;
+	}
+	if (!parv[1])
+	{
+		send_help_to_client(client, cregister_help);
+		return;
+	}
+	if (!strcasecmp(parv[1],"help"))
+	{
+		send_help_to_client(client, cregister_help);
+		return;
+	}
+	else if (!(channel = find_channel(parv[1])))
+	{
+		sendnumeric(client, ERR_NOSUCHNICK, parv[1]);
+		return;
+	}
+	if (!IsMember(client, channel))
+	{
+		sendnumeric(client, ERR_NOTONCHANNEL, parv[1]);
+		return;
+	}
+	if (!check_channel_access(client, channel, "oaq"))
+	{
+		sendnumeric(client, ERR_CHANOPRIVSNEEDED, channel->name);
+		return;
+	}
+	if (has_channel_mode(channel, 'r'))
+	{
+		sendnumeric(client, ERR_CANNOTDOCOMMAND, MSG_CREGISTER, "That channel is already registered.");
+		return;
+	}
+	sendto_one(services, recv_mtags, ":%s CREGISTER %s", client->id, parv[1]);
+}
+
+
+/** CertFP command
+ * View or manage your saved Certificate Fingerprint list
+ */
+CMD_FUNC(cmd_certfp)
+{
+	Client *services = find_server(iConf.services_name, NULL);
+	if (!IsLoggedIn(client))
+	{
+		sendnumeric(client, ERR_NEEDREGGEDNICK);
+		return;
+	}
+	if (!services)
+	{
+		sendnumeric(client, ERR_SERVICESDOWN, MSG_CERTFP);
+		return;
+	}
+	if (!parv[1])
+	{
+		send_help_to_client(client, certfp_help);
+		return;
+	}
+	if (!strcasecmp(parv[1],"help"))
+	{
+		send_help_to_client(client, certfp_help);
+		return;
+	}
+	if (!strcasecmp(parv[1],"add"))
+	{
+		ModDataInfo *moddata;
+		moddata = findmoddata_byname("certfp", MODDATATYPE_CLIENT);
+		if (!moddata || !moddata_client(client, moddata).str)
+		{
+			sendnumeric(client, ERR_CANNOTDOCOMMAND, MSG_CERTFP, "You do not currently have a certificate fingerprint.");
+			return;
+		}
+		// just let services know they'd like to add it. they will take it from there.
+		sendto_one(services, recv_mtags, ":%s CERTFP ADD :", client->id);
+		return;
+	}
+	else if (!strcasecmp(parv[1],"list"))
+	{
+		sendto_one(services, recv_mtags, ":%s CERTFP LIST :", client->id);
+		return;
+	}
+	else if (!strcasecmp(parv[1],"del"))
+	{
+		if (!parv[2])
+		{
+			send_help_to_client(client, certfp_help);
+			return;
+		}
+		sendto_one(services, recv_mtags, ":%s CERTFP DEL :%s", client->id, parv[2]);
+		return;
+	}
+	else
+		send_help_to_client(client, certfp_help);
+}
+
