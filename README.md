@@ -31,13 +31,13 @@ This compliments other things that have moved to server commands for security re
 
 | Command | Name | Description |
 |---|---|---|
-| AJOIN | Auto-Join | This command lets you view and manage your auto-join list. |
-| CREGISTER | Channel Register | This command lets you register a channel to your account. |
-| MAIL | Mail | This command lets you send messages to users who are offline. They will see them as normal messages when they come back online. |
-| SUSPEND | Suspend | This command lets privileged opers with operclass type `services { can_suspend; }` prevent a specific account from being used. |
-| UNSUSPEND | Unsuspend | This command lets privileged opers with operclass type `services { can_unsuspend; }` unsuspend accounts. |
-| CERTFP | Certificate Fingerprint | This command lets you view and manage your authentication fingerprints used in SASL |
-| VOTEBAN | Vote Ban | This command lets non-ops in +y enabled channels vote to ban users |
+| `AJOIN` | Auto-Join | This command lets you view and manage your auto-join list. |
+| `CREGISTER` | Channel Register | This command lets you register a channel to your account. |
+| `MAIL` | Mail | This command lets you send messages to users who are offline. They will see them as normal messages when they come back online. |
+| `SUSPEND` | Suspend | This command lets privileged opers with operclass type `services { can_suspend; }` prevent a specific account from being used. |
+| `UNSUSPEND` | Unsuspend | This command lets privileged opers with operclass type `services { can_unsuspend; }` unsuspend accounts. |
+| `CERTFP` | Certificate Fingerprint | This command lets you view and manage your authentication fingerprints used in SASL |
+| `VOTEBAN` | Vote Ban | This command lets non-ops in +y enabled channels vote to ban users |
 
 ## <div align="center">OperClass Permissions</div>
 In order to use certain commands, you'll need to give some permissions in your [Operclass block](https://www.unrealircd.org/docs/Operclass_block).
