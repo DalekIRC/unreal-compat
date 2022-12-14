@@ -22,7 +22,12 @@ So you'll just do `/COMMAND` instead of any `/ns COMMAND` or indeed `/msg nickse
 
 This compliments other things that have moved to server commands for security reasons, and is, for example, the reason why [SASL](https://ircv3.net/specs/extensions/sasl-3.2) and [Account Registration](https://ircv3.net/specs/extensions/account-registration) (both server-side commands) exists in IRC.
 
-## <div align="center">Unreal Commands Implemented By DalekIRC</div>
+## <div align="center">Channel Modes Implemented By DalekIRC</div>
+
+| Mode | Name | Params | Description |
+|---|---|---|---|
+| `y` | VoteBan | `1`-`100` | Indicates that regular channel users may vote a person out of the channel. Parameter is amount of votes required. |
+## <div align="center">Commands Implemented By DalekIRC</div>
 
 | Command | Name | Description |
 |---|---|---|
@@ -32,6 +37,7 @@ This compliments other things that have moved to server commands for security re
 | SUSPEND | Suspend | This command lets privileged opers with operclass type `services { can_suspend; }` prevent a specific account from being used. |
 | UNSUSPEND | Unsuspend | This command lets privileged opers with operclass type `services { can_unsuspend; }` unsuspend accounts. |
 | CERTFP | Certificate Fingerprint | This command lets you view and manage your authentication fingerprints used in SASL |
+| VOTEBAN | Vote Ban | This command lets non-ops in +y enabled channels vote to ban users |
 
 ## <div align="center">OperClass Permissions</div>
 In order to use certain commands, you'll need to give some permissions in your [Operclass block](https://www.unrealircd.org/docs/Operclass_block).
