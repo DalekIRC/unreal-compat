@@ -446,6 +446,7 @@ CMD_FUNC(cmd_mail)
 	}
 	else if (parc == 3)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_MAIL, parv[1], parv[2]);
+
 	return;
 }
 
@@ -487,48 +488,31 @@ CMD_FUNC(cmd_ajoin)
 	Channel *channel;
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!services)
-	{
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_AJOIN);
-		return;
-	}
-	if (!MyUser(client) && parc == 3)
-	{
-		sendto_one(services, recv_mtags, ":%s AJOIN %s :%s", client->id, parv[1], parv[2]);
-		return;
-	}
-	if (!IsLoggedIn(client))
-	{
-		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_AJOIN);
-		return;
-	}
-	if (!parv[1])
-	{
-		send_help_to_client(client, ajoin_help);
-		return;
-	}
-	if (strcasecmp(parv[1],"add") && strcasecmp(parv[1],"del") && strcasecmp(parv[1],"list"))
-	{
-		send_help_to_client(client, ajoin_help);
-		return;
-	}
 
-	if (!strcasecmp(parv[1],"list"))
-	{
-		sendto_one(services, recv_mtags, ":%s AJOIN LIST :", client->id);
-		return;
-	}
-	else if (!parv[2])
-	{
+	if (!MyUser(client) && parc == 3)
+		sendto_one(services, recv_mtags, ":%s AJOIN %s :%s", client->id, parv[1], parv[2]);
+		
+	else if (!IsLoggedIn(client))
+		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_AJOIN);
+
+	else if (!parv[1])
 		send_help_to_client(client, ajoin_help);
-		return;
-	}
-	
-	if (!(channel = find_channel(parv[2])))
-	{
-		sendnumeric(client, ERR_NOSUCHNICK, parv[2]);
-		return;
-	}
-	sendto_one(services, recv_mtags, ":%s AJOIN %s :%s", client->id, parv[1], parv[2]);
+
+	else if (strcasecmp(parv[1],"add") && strcasecmp(parv[1],"del") && strcasecmp(parv[1],"list"))
+		send_help_to_client(client, ajoin_help);
+
+	else if (!strcasecmp(parv[1],"list"))
+		sendto_one(services, recv_mtags, ":%s AJOIN LIST :", client->id);
+		
+	else if (!parv[2])
+		send_help_to_client(client, ajoin_help);
+		
+	else if (!(channel = find_channel(parv[2])))
+		sendnumeric(client, ERR_NOSUCHCHANNEL, parv[2]);
+		
+	else
+		sendto_one(services, recv_mtags, ":%s AJOIN %s :%s", client->id, parv[1], parv[2]);
 
 }
 
@@ -539,42 +523,27 @@ CMD_FUNC(cmd_suspend)
 {
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!ValidatePermissionsForPath("services:can_suspend", client, NULL, NULL, NULL)) // validate with operclasses instead of services-side ;D
-	{
 		sendnumeric(client, ERR_NOPRIVILEGES);
-		return;
-	}
-	if (!services)
-	{
+
+	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
-		return;
-	}
-	if (!MyUser(client) && parc > 2)
-	{
+		
+	else if (!MyUser(client) && parc > 2)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_SUSPEND, parv[1], parv[2]);
-		return;
-	}
-	
-	if (!IsLoggedIn(client))
-	{
+		
+	else if (!IsLoggedIn(client))
 		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_SUSPEND);
-		return;
-	}
-	if (!services)
-	{
-		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
-		return;
-	}
-	if (!parv[1])
+		
+	else if (!parv[1])
 	{
 		send_help_to_client(client, suspend_help);
 		return;
 	}
-	if (!parv[2])
+	else if (!parv[2])
 	{
 		parv[2] = "No reason";
 		parv[3] = NULL;
 	}
-	
 	sendto_one(services, recv_mtags, ":%s SUSPEND %s :%s", client->id, parv[1], parv[2]);
 
 }
@@ -586,37 +555,22 @@ CMD_FUNC(cmd_unsuspend)
 {
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!ValidatePermissionsForPath("services:can_suspend", client, NULL, NULL, NULL)) // validate with operclasses instead of services-side ;D
-	{
 		sendnumeric(client, ERR_NOPRIVILEGES);
-		return;
-	}
-	if (!services)
-	{
+
+	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
-		return;
-	}
-	if (!MyUser(client) && parc > 2)
-	{
+		
+	else if (!MyUser(client) && parc > 2)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_UNSUSPEND, parv[1], parv[2]);
-		return;
-	}
-	if (!IsLoggedIn(client))
-	{
+		
+	else if (!IsLoggedIn(client))
 		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_UNSUSPEND);
-		return;
-	}
-	if (!services)
-	{
-		sendnumeric(client, ERR_SERVICESDOWN, MSG_UNSUSPEND);
-		return;
-	}
-	if (!parv[1])
-	{
+
+	else if (!parv[1])
 		send_help_to_client(client, unsuspend_help);
-		return;
-	}
-	
-	sendto_one(services, recv_mtags, ":%s UNSUSPEND %s", client->id, parv[1]);
+		
+	else
+		sendto_one(services, recv_mtags, ":%s UNSUSPEND %s", client->id, parv[1]);
 
 }
 
@@ -628,51 +582,36 @@ CMD_FUNC(cmd_cregister)
 	Client *services = find_server(iConf.services_name, NULL);
 	Channel *channel;
 	if (!MyUser(client) && parc == 2)
-	{
 		sendto_one(services, recv_mtags, ":%s CREGISTER %s", client->id, parv[1]);
-		return;
-	}
-	if (!IsLoggedIn(client))
-	{
+
+	else if (!IsLoggedIn(client))
 		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_CREGISTER);
-		return;
-	}
-	if (!services)
-	{
+		
+	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_CREGISTER);
-		return;
-	}
-	if (!parv[1])
-	{
+
+	else if (!parv[1])
 		send_help_to_client(client, cregister_help);
-		return;
-	}
-	if (!strcasecmp(parv[1],"help"))
-	{
+
+	else if (!strcasecmp(parv[1],"help"))
 		send_help_to_client(client, cregister_help);
-		return;
-	}
+		
 	else if (!(channel = find_channel(parv[1])))
-	{
-		sendnumeric(client, ERR_NOSUCHNICK, parv[1]);
-		return;
-	}
-	if (!IsMember(client, channel))
-	{
+		sendnumeric(client, ERR_NOSUCHCHANNEL, parv[1]);
+
+	else if (!IsMember(client, channel))
 		sendnumeric(client, ERR_NOTONCHANNEL, parv[1]);
-		return;
-	}
-	if (!check_channel_access(client, channel, "oaq"))
-	{
+
+	else if (!check_channel_access(client, channel, "oaq"))
 		sendnumeric(client, ERR_CHANOPRIVSNEEDED, channel->name);
-		return;
-	}
-	if (has_channel_mode(channel, 'r'))
-	{
+
+	else if (has_channel_mode(channel, 'r'))
 		sendnumeric(client, ERR_CANNOTDOCOMMAND, MSG_CREGISTER, "That channel is already registered.");
-		return;
-	}
-	sendto_one(services, recv_mtags, ":%s CREGISTER %s", client->id, parv[1]);
+
+	else
+		sendto_one(services, recv_mtags, ":%s CREGISTER %s", client->id, parv[1]);
+
+	add_fake_lag(client, 500);
 }
 
 
@@ -683,31 +622,21 @@ CMD_FUNC(cmd_certfp)
 {
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!MyUser(client) && parc == 3)
-	{
 		sendto_one(services, recv_mtags, ":%s CERTFP %s :%s", client->id, parv[1], parv[2]);
-		return;
-	}
-	if (!IsLoggedIn(client))
-	{
+		
+	else if (!IsLoggedIn(client))
 		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_CERTFP);
-		return;
-	}
-	if (!services)
-	{
+		
+	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_CERTFP);
-		return;
-	}
-	if (!parv[1])
-	{
+		
+	else if (!parv[1])
 		send_help_to_client(client, certfp_help);
-		return;
-	}
-	if (!strcasecmp(parv[1],"help"))
-	{
+		
+	else if (!strcasecmp(parv[1],"help"))
 		send_help_to_client(client, certfp_help);
-		return;
-	}
-	if (!strcasecmp(parv[1],"add"))
+		
+	else if (!strcasecmp(parv[1],"add"))
 	{
 		ModDataInfo *moddata;
 		moddata = findmoddata_byname("certfp", MODDATATYPE_CLIENT);
@@ -734,6 +663,8 @@ CMD_FUNC(cmd_certfp)
 	}
 	else
 		send_help_to_client(client, certfp_help);
+
+	add_fake_lag(client, 500);
 }
 
 
@@ -830,73 +761,48 @@ CMD_FUNC(cmd_voteban)
 	Channel *channel;
 	Client *services = find_server(iConf.services_name, NULL);
 	if (!MyUser(client) && parc == 4)
-	{
 		sendto_one(services, recv_mtags, ":%s VOTEBAN %s %s :%s", client->id, parv[1], parv[2], parv[3]);
-		return;
-	}
-	if (!IsLoggedIn(client))
-	{
+		
+	else if (!IsLoggedIn(client))
 		sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_VOTEBAN);
-		return;
-	}
-	if (!services)
-	{
+
+	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_VOTEBAN);
-		return;
-	}
-	if (!parv[1])
-	{
+		
+	else if (!parv[1])
 		send_help_to_client(client, voteban_help);
-		return;
-	}
-	if (!strcasecmp(parv[1],"help") || parc < 3)
-	{
+		
+	else if (!strcasecmp(parv[1],"help") || parc < 3)
 		send_help_to_client(client, voteban_help);
-		return;
-	}
-	if (!(channel = find_channel(parv[1])))
-	{
-		sendnumeric(client, ERR_NOSUCHNICK, parv[1]);
-		return;
-	}
-	if (!IsVoteBan(channel))
-	{
+		
+	else if (!(channel = find_channel(parv[1])))
+		sendnumeric(client, ERR_NOSUCHCHANNEL, parv[1]);
+		
+	else if (!IsVoteBan(channel))
 		sendto_one(client, NULL, "FAIL VOTEBAN * :That channel is not accepting ban votes");
-		return;
-	}
-	if (!(target = find_user(parv[2], NULL)))
-	{
+		
+	else if (!(target = find_user(parv[2], NULL)))
 		sendnumeric(client, ERR_NOSUCHNICK, parv[2]);
-		return;
-	}
-	if (!IsMember(client, channel))
-	{
+		
+	else if (!IsMember(client, channel))
 		sendnumeric(client, ERR_NOTONCHANNEL, channel->name);
-		return;
-	}
-	if (!IsMember(target, channel))
-	{
+		
+	else if (!IsMember(target, channel))
 		sendnumeric(client, ERR_USERNOTINCHANNEL, target->name, channel->name);
-		return;
-	}
-	if (check_channel_access(client, channel, "oaq"))
-	{
+
+	else if (check_channel_access(client, channel, "oaq"))
 		sendto_one(client, NULL, "FAIL VOTEBAN YOU_ARE_OPPED :You cannot vote to ban as you already have the ability to ban.");
-		return;
-	}
-	if (check_channel_access(target, channel, "hoaq"))
-	{
+		
+	else if (check_channel_access(target, channel, "hoaq"))
 		sendto_one(client, NULL, "FAIL VOTEBAN CANNOT_VOTE_FOR_OPS :You cannot vote to ban channel operators.");
-		return;
-	}
-	if (IsOper(target))
-	{
+
+	else if (IsOper(target))
 		sendto_one(client, NULL, "FAIL VOTEBAN CANNOT_VOTE_FOR_OPS :You cannot vote to ban network staff.");
-		return;
-	}
 	
 	/* finally if we made it this far */
-	sendto_one(services, recv_mtags, ":%s VOTEBAN %s %s :%s", client->id, channel->name, target->id, (parv[3]) ? parv[3] : "No reason");
+	else
+		sendto_one(services, recv_mtags, ":%s VOTEBAN %s %s :%s", client->id, channel->name, target->id, (parv[3]) ? parv[3] : "No reason");
+
 	add_fake_lag(client, 2000);
 
 }
