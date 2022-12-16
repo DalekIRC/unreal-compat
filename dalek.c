@@ -57,7 +57,6 @@ ModuleHeader MOD_HEADER = {
 	"unrealircd-6",
 };
 
-
 Cmode_t EXTMODE_VBAN = 0L; // our mode
 
 /** The struct which holds which number of votes is
@@ -413,6 +412,7 @@ CMD_FUNC(cmd_mail)
 	Client *services = find_server(iConf.services_name, NULL);
 	if (MyUser(client)) // only check if it's being issued on this server
 	{
+			
 		if (!IsLoggedIn(client))
 		{
 			sendnumeric(client, ERR_NEEDREGGEDNICK, MSG_MAIL);
@@ -443,13 +443,13 @@ CMD_FUNC(cmd_mail)
 			sendto_one(client, recv_mtags, ":%s!%s@%s PRIVMSG %s :%s", target->name, target->user->username, (target->umodes & UMODE_SETHOST) ? target->user->virthost : target->user->cloakedhost, client->name, "[*** Redirected ***]");
 			return;
 		}
+		else if (parc == 3)
+			sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_MAIL, parv[1], parv[2]);
+		return;
 	}
 	else if (parc == 3)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_MAIL, parv[1], parv[2]);
-
-	return;
 }
-
 
 /**
  * In this whois hook, we let the user see their own "places they are logged in from".
@@ -614,7 +614,6 @@ CMD_FUNC(cmd_cregister)
 	add_fake_lag(client, 500);
 }
 
-
 /** CertFP command
  * View or manage your saved Certificate Fingerprint list
  */
@@ -666,7 +665,6 @@ CMD_FUNC(cmd_certfp)
 
 	add_fake_lag(client, 500);
 }
-
 
 int cmode_voteban_is_ok(Client *client, Channel *channel, char mode, const char *param, int type, int what)
 {
@@ -754,7 +752,6 @@ int transform_channel_voteban(const char *param)
 	return v;
 }
 
-
 CMD_FUNC(cmd_voteban)
 {
 	Client *target;
@@ -804,6 +801,5 @@ CMD_FUNC(cmd_voteban)
 		sendto_one(services, recv_mtags, ":%s VOTEBAN %s %s :%s", client->id, channel->name, target->id, (parv[3]) ? parv[3] : "No reason");
 
 	add_fake_lag(client, 2000);
-
 }
 
