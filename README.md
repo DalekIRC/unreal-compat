@@ -14,7 +14,7 @@ We're doing away with services bots, and moving their commands server-side!
 So you'll just do `/COMMAND` instead of any `/ns COMMAND` or indeed `/msg nickserv COMMAND`.
 </div>
 
-## <div align="center">Advantages</div>
+### <div align="center">Advantages</div>
 - Configure who can do what using the UnrealIRCd configuration. This keeps configuration all in one place.
 - Use UnrealIRCd operclass blocks to fully customise who can do what. For example, you can choose which oper can use the `/SUSPEND` command by specifying it in the [Operclass block](https://www.unrealircd.org/docs/Operclass_block). See below for how to set up your operblock.
 - A more native feel for clients, for example, proper numerics and standard replies (ircv3) regarding reasons `/CREGISTER` might have failed (Example, `ERR_CHANOPRIVSNEEDED`)
