@@ -54,3 +54,33 @@ operclass example-services-boss {
     }
   }
   ```
+## <div align="center">Command Restriction</div>
+It's really easy to restrict or limit commands to users who meet a certain criteria, or restrict them completely, using [UnrealIRCd's `set::restrict-commands` block.](https://www.unrealircd.org/docs/Set_block#set::restrict-commands)
+
+Here are some examples.
+```
+set { /* our set block */
+  restrict-commands { /* the option we need */
+  
+    voteban { /* we are restricting voteban! */
+      except { /* with the exception of */
+        reputation-score 60; /* can use command when they are valid enough */
+        connect-time 60; /* can use command after 60 seconds */
+      }
+    }
+    
+    cregister { /* also restricting channel registration! */
+      except { /* with the exception of */
+        reputation-score 100; /* can use command when they are valid enough */
+        connect-time 60; /* can use command after 60 seconds */
+      }
+    }
+    
+    mail { /* restricting mail! */
+      except { /* with the exception of */
+        reputation-score 1000; /* can use command when they are valid enough */
+        connect-time 120; /* can use command after 2 minutes seconds */
+      }
+    }
+  }
+}
