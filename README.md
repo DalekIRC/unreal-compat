@@ -1,7 +1,7 @@
 # <div align="center">DalekIRC's UnrealIRCd Add-On <img src="https://cdn-icons-png.flaticon.com/512/5229/5229377.png" height="45" width="45"></div>
 
 <div align="center">
-This module provides compatibility and extended functionality with DalekIRC Services for WordPress.
+This module compliments UnrealIRCd with its keen compatibility and extended functionality with DalekIRC Services for WordPress.
   
 ### <b>Requires UnrealIRCd 6 or later</b>.
 </div>
