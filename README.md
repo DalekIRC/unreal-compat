@@ -65,21 +65,18 @@ set { /* our set block */
     voteban { /* we are restricting voteban! */
       except { /* with the exception of */
         reputation-score 60; /* can use command when they are valid enough */
-        connect-time 60; /* can use command after 60 seconds */
       }
     }
     
     cregister { /* also restricting channel registration! */
       except { /* with the exception of */
-        reputation-score 100; /* can use command when they are valid enough */
         connect-time 60; /* can use command after 60 seconds */
       }
     }
     
     mail { /* restricting mail! */
       except { /* with the exception of */
-        reputation-score 1000; /* can use command when they are valid enough */
-        connect-time 120; /* can use command after 2 minutes seconds */
+        webirc yes; /* restrict to web users */
       }
     }
   }
