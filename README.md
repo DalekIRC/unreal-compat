@@ -20,7 +20,7 @@ So you'll just do `/COMMAND` instead of any `/ns COMMAND` or indeed `/msg nickse
 - A more native feel for clients, for example, proper numerics regarding reasons `/CREGISTER` might have failed (Example, `ERR_CHANOPRIVSNEEDED`)
 - Sideswipes security issues pertaining to the many clients and scripts out there who assume it's okay to message a bot with sensitive information. An example of this is the fact that some networks do not use NickServ as their authentication mechanism, and instead could use something called "X" or something completely different.
 
-This compliments other things that have moved to server commands for security reasons, and is, for example, the reason why [SASL](https://ircv3.net/specs/extensions/sasl-3.2) and [Account Registration](https://ircv3.net/specs/extensions/account-registration) (both server-side commands) exists in IRC.
+This compliments other things that have moved to server commands for security reasons, and is, for example, the reason why [SASL](https://ircv3.net/specs/extensions/sasl-3.2) and [Account Registration](https://ircv3.net/specs/extensions/account-registration) (both server-side commands) exists in IRC. It just makes sense.
 
 ## <div align="center">Channel Modes Implemented By DalekIRC</div>
 
