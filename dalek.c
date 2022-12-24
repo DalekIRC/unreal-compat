@@ -23,23 +23,35 @@ module
 */
 
 #include "unrealircd.h"
-#define MSG_PRIVATTEMPT "PRIVATTEMPT"
-#define MSG_SPRIVMSG "SPRIVMSG"
-#define MSG_MAIL "MAIL"
-#define MSG_AJOIN "AJOIN"
-#define MSG_SUSPEND "SUSPEND"
-#define MSG_UNSUSPEND "UNSUSPEND"
-#define MSG_CREGISTER "CREGISTER"
-#define MSG_CERTFP "CERTFP"
-#define MSG_VOTEBAN "VOTEBAN"
 
-#define IsVoteBan(x)	((x)->mode.mode & EXTMODE_VBAN)
+/* Commands */
+#define MSG_PRIVATTEMPT	"PRIVATTEMPT"	/** This command notifies services about attempted private messages, so they can check if the account exists and recommend /MAIL */
+#define MSG_SPRIVMSG	"SPRIVMSG"		/** This command is used by services to deliver MAIL messages */
+#define MSG_MAIL		"MAIL"			/** This command is used by users to send mail to offline users */
+#define MSG_AJOIN		"AJOIN"			/** This command is used by users to view and change their auto-join list */
+#define MSG_SUSPEND		"SUSPEND"		/** This command is used by privileged opers to suspend an account */
+#define MSG_UNSUSPEND	"UNSUSPEND"		/** This command is used by privileged opers to unsuspend an account */
+#define MSG_CREGISTER	"CREGISTER"		/** This command is used by channel ops to register a channel */
+#define MSG_CERTFP		"CERTFP"		/** This command is used by users to view and change their certfp list*/
+#define MSG_VOTEBAN		"VOTEBAN"		/** This command is used by channel users to vote other users out in +y channels */
+#define MSG_SREPLY		"SREPLY"		/** This command is used by services to deliver IRCv3-style Standard Replies to the user */
 
-/** Declarations */
-/* "Logged in from" whois fields */
+/* Message Tags */
+#define DALEK_MAIL		"dalek.services/mail"	/** This MessageTag is used to indicate that a message was delivered by MAIL */
+
+/* Defines */
+#define IsVoteBan(x)	((x)->mode.mode & EXTMODE_VBAN) /** This checks if a channel has +y (VoteBan)*/
+
+
+/** "Logged in from" whois fields */
 int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **list);
+/** What happens when DalekIRC disconnects from the uplink */
+int dalek_panic(Client *client, MessageTag *mtag);
+/** Deals with MessageTag dalek.services/mail */
+int mail_mtag_is_ok(Client *client, const char *name, const char *value);
+void mtag_add_mail(Client *client, MessageTag *recv_mtags, MessageTag **mtag_list, const char *signature);
 
-/** Voteban mode checking */
+/* Voteban mode checking */
 int cmode_voteban_is_ok(Client *client, Channel *channel, char mode, const char *para, int type, int what);
 void *cmode_voteban_put_param(void *r_in, const char *param);
 const char *cmode_voteban_get_param(void *r_in);
@@ -49,6 +61,7 @@ void *cmode_voteban_dup_struct(void *r_in);
 int cmode_voteban_sjoin_check(Channel *channel, void *ourx, void *theirx);
 int transform_channel_voteban(const char *param);
 
+/* Our module header */
 ModuleHeader MOD_HEADER = {
 	"third/dalek",
 	"1.0.0",
@@ -57,7 +70,7 @@ ModuleHeader MOD_HEADER = {
 	"unrealircd-6",
 };
 
-Cmode_t EXTMODE_VBAN = 0L; // our mode
+Cmode_t EXTMODE_VBAN = 0L; // our mode +y
 
 /** The struct which holds which number of votes is
  * expected before a user is banned
@@ -80,9 +93,10 @@ static void send_help_to_client(Client *client, char **p)
 }
 
 
-/**
+/*
  * Help files
 */
+/** Help for MAIL */
 static char *mail_help[] = {
 	"***** Mail *****",
 	" ",
@@ -98,6 +112,7 @@ static char *mail_help[] = {
 	" ",
 	NULL
 };
+/** Help for AJOIN */
 static char *ajoin_help[] = {
 	"***** AJoin *****",
 	" ",
@@ -118,6 +133,7 @@ static char *ajoin_help[] = {
 	" ",
 	NULL
 };
+/** Help for SUSPEND */
 static char *suspend_help[] = {
 	"***** Suspend *****",
 	" ",
@@ -135,6 +151,8 @@ static char *suspend_help[] = {
 	" ",
 	NULL
 };
+
+/** Help for UNSUSPEND */
 static char *unsuspend_help[] = {
 	"***** Unsuspend *****",
 	" ",
@@ -151,6 +169,7 @@ static char *unsuspend_help[] = {
 	" ",
 	NULL
 };
+/** Help for CREGISTER */
 static char *cregister_help[] = {
 	"***** CRegister *****",
 	" ",
@@ -168,6 +187,7 @@ static char *cregister_help[] = {
 	" ",
 	NULL
 };
+/** Help for CERTFP */
 static char *certfp_help[] = {
 	"***** CertFP *****",
 	" ",
@@ -187,6 +207,7 @@ static char *certfp_help[] = {
 	" ",
 	NULL
 };
+/** Help for VOTEBAN */
 static char *voteban_help[] = {
 	"***** Voteban *****",
 	" ",
@@ -261,12 +282,23 @@ CMD_FUNC(cmd_unsuspend);
 CMD_FUNC(cmd_cregister);
 CMD_FUNC(cmd_certfp);
 CMD_FUNC(cmd_voteban);
+CMD_FUNC(cmd_sreply);
 
+/** Module initialization */
 MOD_INIT() {
 	MARK_AS_GLOBAL_MODULE(modinfo);
 
 	CmodeInfo creq;
 
+	/* Add our messagetag */
+	MessageTagHandlerInfo mtag;
+	memset(&mtag, 0, sizeof(mtag));
+	mtag.name = DALEK_MAIL;
+	mtag.is_ok = mail_mtag_is_ok;
+	mtag.flags = MTAG_HANDLER_FLAGS_NO_CAP_NEEDED;
+	MessageTagHandlerAdd(modinfo->handle, &mtag);
+
+	/* Add our channel mode +y */
 	memset(&creq, 0, sizeof(creq));
 	creq.paracount = 1;
 	creq.is_ok = cmode_voteban_is_ok;
@@ -279,21 +311,28 @@ MOD_INIT() {
 	creq.sjoin_check = cmode_voteban_sjoin_check;
 	CmodeAdd(modinfo->handle, creq, &EXTMODE_VBAN);
 
-	CommandAdd(modinfo->handle, MSG_PRIVATTEMPT, cmd_privattempt, 2, CMD_SERVER|CMD_USER);
-	CommandAdd(modinfo->handle, MSG_SPRIVMSG, cmd_sprivmsg, 3, CMD_SERVER);
-	CommandAdd(modinfo->handle, MSG_MAIL, cmd_mail, 2, CMD_SERVER|CMD_USER);
-	CommandAdd(modinfo->handle, MSG_AJOIN, cmd_ajoin, 2, CMD_USER);
-	CommandAdd(modinfo->handle, MSG_SUSPEND, cmd_suspend, 2, CMD_OPER);
-	CommandAdd(modinfo->handle, MSG_UNSUSPEND, cmd_unsuspend, 1, CMD_OPER);
-	CommandAdd(modinfo->handle, MSG_CREGISTER, cmd_cregister, 1, CMD_USER);
-	CommandAdd(modinfo->handle, MSG_CERTFP, cmd_certfp, 2, CMD_USER);
-	CommandAdd(modinfo->handle, MSG_VOTEBAN, cmd_voteban, 3, CMD_USER);
+
+	/* Add our hooks */
 	HookAdd(modinfo->handle, HOOKTYPE_WHOIS, 0, loggedinfrom_whois);
-	return MOD_SUCCESS;
+	HookAdd(modinfo->handle, HOOKTYPE_SERVER_QUIT, 9999, dalek_panic);
+	
+	return MOD_SUCCESS; // hooray
 }
 /** Called upon module load */
 MOD_LOAD()
 {
+	/* Add our commands */
+	CommandAdd(modinfo->handle, MSG_PRIVATTEMPT, cmd_privattempt, 2, CMD_SERVER|CMD_USER);
+	CommandAdd(modinfo->handle, MSG_SPRIVMSG, cmd_sprivmsg, 3, CMD_SERVER);
+	CommandAdd(modinfo->handle, MSG_AJOIN, cmd_ajoin, 2, CMD_USER);
+	CommandAdd(modinfo->handle, MSG_SUSPEND, cmd_suspend, 2, CMD_OPER);
+	if (!find_command_simple(MSG_SREPLY)) // might be added to the source at some point (1/2)
+		CommandAdd(modinfo->handle, MSG_SREPLY, cmd_sreply, 3, CMD_SERVER); // only add it if it's not (2/2)
+	CommandAdd(modinfo->handle, MSG_UNSUSPEND, cmd_unsuspend, 1, CMD_OPER);
+	CommandAdd(modinfo->handle, MSG_CERTFP, cmd_certfp, 2, CMD_USER);
+	CommandAdd(modinfo->handle, MSG_MAIL, cmd_mail, 2, CMD_SERVER|CMD_USER);
+	CommandAdd(modinfo->handle, MSG_CREGISTER, cmd_cregister, 1, CMD_USER);
+	CommandAdd(modinfo->handle, MSG_VOTEBAN, cmd_voteban, 3, CMD_USER);
 	CommandOverrideAdd(modinfo->handle, "PRIVMSG", 0, privmsg_ovr);
 	CommandOverrideAdd(modinfo->handle, "HELPOP", 0, helpop_ovr);
 	CommandOverrideAdd(modinfo->handle, "HELP", 0, helpop_ovr);
@@ -383,6 +422,8 @@ CMD_FUNC(cmd_privattempt)
 */
 CMD_FUNC(cmd_sprivmsg)
 {
+	MessageTag *m;
+
 	if (!IsULine(client))
 		return;
 
@@ -394,6 +435,7 @@ CMD_FUNC(cmd_sprivmsg)
 	if (!(target = find_user(parv[2], NULL)))
 		return;
 
+	
 	if (!MyUser(target))
 	{
 		sendto_one(target->uplink, recv_mtags, ":%s SPRIVMSG %s %s :%s", client->id, parv[1], target->name, parv[3]);
@@ -459,7 +501,10 @@ int loggedinfrom_whois(Client *requester, Client *acptr, NameValuePrioList **lis
 {
 	Client *client;
 	char buf[512];
-	
+
+	if (!IsLoggedIn(acptr)) // not logged in, return
+		return 0;
+
 	if (!IsOper(requester) && acptr != requester) // only show to the self
 		return 0;
 	
@@ -528,7 +573,7 @@ CMD_FUNC(cmd_suspend)
 	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
 		
-	else if (!MyUser(client) && parc > 2)
+	else if (MyUser(client) && parc > 2)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_SUSPEND, parv[1], parv[2]);
 		
 	else if (!IsLoggedIn(client))
@@ -560,7 +605,7 @@ CMD_FUNC(cmd_unsuspend)
 	else if (!services)
 		sendnumeric(client, ERR_SERVICESDOWN, MSG_SUSPEND);
 		
-	else if (!MyUser(client) && parc > 2)
+	else if (MyUser(client) && parc > 2)
 		sendto_one(services, recv_mtags, ":%s %s %s :%s", client->id, MSG_UNSUSPEND, parv[1], parv[2]);
 		
 	else if (!IsLoggedIn(client))
@@ -801,5 +846,89 @@ CMD_FUNC(cmd_voteban)
 		sendto_one(services, recv_mtags, ":%s VOTEBAN %s %s :%s", client->id, channel->name, target->id, (parv[3]) ? parv[3] : "No reason");
 
 	add_fake_lag(client, 2000);
+}
+
+int dalek_panic(Client *client, MessageTag *mtag)
+{
+	if (!iConf.services_name)
+		return 0;
+	
+	if (IsMe(client->uplink) && !strcmp(client->info,"Dalek IRC Services")) // oh fuck
+	{
+		sendto_umode_global(UMODE_OPER, "[services] It seems Services has disconnected. Some functions may not work properly. Attempting to get Services back online.");
+		char cwd[PATH_MAX + 1];
+		if (getcwd(cwd, sizeof(cwd)) == NULL)
+		{
+			sendto_umode_global(UMODE_OPER, "Could not find services package. Could not get services online.");
+			return 0;
+		}
+		
+		strlcat(cwd, "/../../Dalek-Services/dalek", PATH_MAX);
+		if (file_exists(cwd))
+		{
+			sendto_umode_global(UMODE_OPER, "[services] Found services package. Loading...");
+			int status = system("cd ~/Dalek-Services/ && ./dalek stop && ./dalek start");
+		}
+		else
+			sendto_umode_global(UMODE_OPER, "[services] Could not find services package. Could not get services online.");
+	}
+	return 0;
+}
+
+
+/**
+ * cmd_sreply
+ * @param parv[1]		Nick|UID
+ * @param parv[2]		"F", "W" or "N" for FAIL, WARN and NOTE.
+ * @param parv[3]		The rest of the message
+ * 
+ * Example: :Server SREPLY nick|uid F|W|N CONTEXT [EXTRA] :Your message here.
+*/
+CMD_FUNC(cmd_sreply)
+{
+	Client *target;
+
+	if ((parc < 4) || !(target = find_user(parv[1], NULL)))
+		return;
+
+	if (MyUser(target))
+	{
+		if (!strcmp(parv[2],"F"))
+			sendto_one(target, recv_mtags, "FAIL %s", parv[3]);
+
+		else if (!strcmp(parv[2],"W"))
+			sendto_one(target, recv_mtags, "WARN %s", parv[3]);
+
+		else if (!strcmp(parv[2],"N"))
+			sendto_one(target, recv_mtags, "NOTE %s", parv[3]);
+
+		else // error
+			return;
+	}
+	else
+		sendto_server(client, 0, 0, recv_mtags, ":%s %s %s %s %s", client->name, MSG_SREPLY, parv[1], parv[2], parv[3]);
+}
+
+
+int mail_mtag_is_ok(Client *client, const char *name, const char *value)
+{
+	if (!IsULine(client))
+		return 0;
+	return 1;
+}
+
+void mtag_add_mail(Client *client, MessageTag *recv_mtags, MessageTag **mtag_list, const char *signature)
+{
+	MessageTag *m;
+
+	if (IsULine(client))
+	{
+		m = find_mtag(recv_mtags, DALEK_MAIL);
+		if (m)
+		{
+			m = duplicate_mtag(m);
+			AddListItem(m, *mtag_list);
+		}
+	}
 }
 
